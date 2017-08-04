@@ -1,5 +1,4 @@
 //Define
-//aa
 #define MOISTURE_SIGNAL A0
 
 #define SONIC_TRIG A1
