@@ -14,16 +14,17 @@
 #define PIEZO_SIGNAL 13
 
 #define MOTOR_SIGNAL 8
-#define MOTOR_DURATION 100 //모터 돌리는 시간
+#define MOTOR_DURATION 50 //모터 돌리는 시간
 
-#define LED_SIGNAL 7 //x
+#define LED_SIGNAL 7
+#define LED_QUANTITY 10
 
 #define WATER_LEVEL 20
 
 #define DATAQU 15 // sonic data quantity
 
-#define MAXLUX 2000
-#define MINLUX 1000
+#define MAXLUX 1500
+#define MINLUX 500
 
 //End Define
 
@@ -40,7 +41,7 @@
 //Global variables
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 BH1750 lightMeter;
-Adafruit_NeoPixel ledbar = Adafruit_NeoPixel(10, LED_SIGNAL, NEO_GRB + NEO_KHZ800); //(led갯수, 핀번호, 그냥 냅두면되는거)
+Adafruit_NeoPixel ledbar = Adafruit_NeoPixel(LED_QUANTITY, LED_SIGNAL, NEO_GRB + NEO_KHZ800); //(led갯수, 핀번호, 그냥 냅두면되는거)
 byte timerv = 0; 
 short aqtime = 0;
 //End Global Variables
@@ -75,7 +76,6 @@ void loop()
   float moisture = 0;
   uint16_t lux = 0;
   int value = 0;
-  
 
   getFilteredDistance(&distance);
   activateMotor(&moisture);
@@ -83,10 +83,12 @@ void loop()
   checkLevel(&distance);
 
   value = setLEDlux(&lux);
-  for(int i = 0; i < 10; i++)
+  for(int i = 0; i < LED_QUANTITY; i++)
     ledbar.setPixelColor(i, value, value, value); //(i번째 led, r, g, b)  rgb순서는 모르겟
   ledbar.show();
+
   
+  delay(5);
   showLCD(distance, moisture, lux);
 
   timerv += 1;
@@ -129,8 +131,8 @@ void showLCD(int distance, float moisture, uint16_t lux)
   lcd.write("Distance : ");
   lcd.print(distance);
   lcd.write("cm");*/
+  lcd.home();
   lcd.clear();
-  lcd.setCursor(0,0);
   lcd.write("Lux : ");
   lcd.print(lux);
   lcd.write(" lx");
@@ -209,8 +211,6 @@ int getDistance(void)
   //Serial.println(" Cm");
   
   return distance;
-  
-
 }
 
 void getMoisture(float * moisture)
