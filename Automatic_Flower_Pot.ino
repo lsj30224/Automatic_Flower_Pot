@@ -13,7 +13,8 @@
 
 #define PIEZO_SIGNAL 13
 
-#define MOTOR_SIGNAL 8 //x
+#define MOTOR_SIGNAL 8
+#define MOTOR_DURATION 100 //모터 돌리는 시간
 
 #define LED_SIGNAL 7 //x
 
@@ -40,6 +41,8 @@
 LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 BH1750 lightMeter;
 Adafruit_NeoPixel ledbar = Adafruit_NeoPixel(10, LED_SIGNAL, NEO_GRB + NEO_KHZ800); //(led갯수, 핀번호, 그냥 냅두면되는거)
+byte timerv = 0; 
+short aqtime = 0;
 //End Global Variables
 
 void setup() 
@@ -60,6 +63,9 @@ void setup()
   ledbar.begin();
   //pinMode(LED_PIN, OUTPUT);
   //digitalWrite(LED_PIN, LOW);
+
+  //MOTOR
+  pinMode(MOTOR_SIGNAL, OUTPUT);
 } //End setup
 
 
@@ -82,18 +88,38 @@ void loop()
   ledbar.show();
   
   showLCD(distance, moisture, lux);
+
+  timerv += 1;
   
 }//End loop
+
+short checkTimer()
+{
+  const short DURATION = MOTOR_DURATION; //수정
+
+  if(((short)timerv - aqtime) > DURATION)
+    return 1;
+  else if((((1 << 8 * sizeof(timerv)) + ((short)timerv - aqtime)) > DURATION) && (((short)timerv - aqtime) < 0))
+    return 1;
+  else
+    return 0;
+}
 
 void activateMotor(float * moisture)
 {
   getMoisture(moisture);
   
-  if((int)*moisture < 75)
+  if((((int)*moisture) < 75) && (!aqtime))
   {
     digitalWrite(MOTOR_SIGNAL, HIGH);
-    delay(1000); //나중에 5000으로 변경
+    aqtime = timerv;
+    //delay(3000); //나중에 5000으로 변경
+    //digitalWrite(MOTOR_SIGNAL, LOW);
+  }
+  if(aqtime && checkTimer())
+  {
     digitalWrite(MOTOR_SIGNAL, LOW);
+    aqtime = 0;
   }
 }
 
@@ -103,6 +129,8 @@ void showLCD(int distance, float moisture, uint16_t lux)
   lcd.write("Distance : ");
   lcd.print(distance);
   lcd.write("cm");*/
+  lcd.clear();
+  lcd.setCursor(0,0);
   lcd.write("Lux : ");
   lcd.print(lux);
   lcd.write(" lx");
@@ -110,6 +138,11 @@ void showLCD(int distance, float moisture, uint16_t lux)
   lcd.write("Moisture : ");
   lcd.print((int)moisture);
   lcd.write("%");
+
+  Serial.print("lux : ");
+  Serial.println(lux);
+  Serial.print("miosture : ");
+  Serial.println((int)moisture);
   
 
 }
@@ -153,8 +186,8 @@ void getFilteredDistance(int * distance)
 
     realvalue = (double)d1 / (DATAQU - count);
 
-    Serial.print("filtered distance : ");
-    Serial.println(realvalue);
+    //Serial.print("filtered distance : ");
+    //Serial.println(realvalue);
     *distance = (double)realvalue;
 }
 
@@ -182,14 +215,16 @@ int getDistance(void)
 
 void getMoisture(float * moisture)
 {
+  //Serial.print("analog data : ");
+  //Serial.println((float)analogRead(MOISTURE_SIGNAL));
   *moisture = (float)analogRead(MOISTURE_SIGNAL) / 820 * 100;
 }
 
 void getBrightness(uint16_t * lux)
 {
   *lux = lightMeter.readLightLevel();
-  Serial.print("lux ");
-  Serial.println(*lux);
+  //Serial.print("lux ");
+  //Serial.println(*lux);
 }
 
 void checkLevel(int * distance)
