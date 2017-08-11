@@ -34,6 +34,7 @@
 #include "BH1750.h" // Sensor Library
 #include <Wire.h> // I2C Library
 #include "Adafruit_NeoPixel.h"
+#include "MsTimer2.h"
 
 //End include headers
 
@@ -67,6 +68,10 @@ void setup()
 
   //MOTOR
   pinMode(MOTOR_SIGNAL, OUTPUT);
+
+  //interrupt
+  MsTimer2::set(3000, showLCD);
+  MsTimer2::start();
 } //End setup
 
 
