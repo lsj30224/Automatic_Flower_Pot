@@ -1,5 +1,6 @@
 //Define
 #define MOISTURE_SIGNAL A0
+#define MOISTURE_MIN_VAL 75 //75%미만이면 물주기
 
 #define SONIC_TRIG A1
 #define SONIC_ECHO A2
@@ -34,6 +35,7 @@
 #include "BH1750.h" // Sensor Library
 #include <Wire.h> // I2C Library
 #include "Adafruit_NeoPixel.h"
+#include "MsTimer2.h"
 
 //End include headers
 
@@ -44,6 +46,7 @@ BH1750 lightMeter;
 Adafruit_NeoPixel ledbar = Adafruit_NeoPixel(LED_QUANTITY, LED_SIGNAL, NEO_GRB + NEO_KHZ800); //(led갯수, 핀번호, 그냥 냅두면되는거)
 byte timerv = 0; 
 short aqtime = 0;
+int motor_state = LOW;
 //End Global Variables
 
 void setup() 
@@ -67,6 +70,10 @@ void setup()
 
   //MOTOR
   pinMode(MOTOR_SIGNAL, OUTPUT);
+
+  //
+  MsTimer2::set(5000, activateMotor);
+  MsTimer2::start();
 } //End setup
 
 
@@ -78,7 +85,8 @@ void loop()
   int value = 0;
 
   getFilteredDistance(&distance);
-  activateMotor(&moisture);
+  motor_state = getMoisture(&moisture);
+  //activateMotor(&moisture);
   getBrightness(&lux);
   checkLevel(&distance);
 
@@ -95,7 +103,7 @@ void loop()
   
 }//End loop
 
-short checkTimer()
+short checkTimer(void)
 {
   const short DURATION = MOTOR_DURATION; //수정
 
@@ -107,22 +115,10 @@ short checkTimer()
     return 0;
 }
 
-void activateMotor(float * moisture)
-{
-  getMoisture(moisture);
-  
-  if((((int)*moisture) < 75) && (!aqtime))
-  {
-    digitalWrite(MOTOR_SIGNAL, HIGH);
-    aqtime = timerv;
-    //delay(3000); //나중에 5000으로 변경
-    //digitalWrite(MOTOR_SIGNAL, LOW);
-  }
-  if(aqtime && checkTimer())
-  {
-    digitalWrite(MOTOR_SIGNAL, LOW);
-    aqtime = 0;
-  }
+void activateMotor(void)
+{ 
+  digitalWrite(MOTOR_SIGNAL, motor_state);
+  motor_state = LOW;
 }
 
 void showLCD(int distance, float moisture, uint16_t lux)
@@ -140,6 +136,7 @@ void showLCD(int distance, float moisture, uint16_t lux)
   lcd.write("Moisture : ");
   lcd.print((int)moisture);
   lcd.write("%");
+  lcd.noCursor();
 
   Serial.print("lux : ");
   Serial.println(lux);
@@ -213,11 +210,15 @@ int getDistance(void)
   return distance;
 }
 
-void getMoisture(float * moisture)
+int getMoisture(float * moisture)
 {
   //Serial.print("analog data : ");
   //Serial.println((float)analogRead(MOISTURE_SIGNAL));
   *moisture = (float)analogRead(MOISTURE_SIGNAL) / 820 * 100;
+  if(*moisture <= MOISTURE_MIN_VAL)
+    return HIGH;
+  else
+    return LOW;
 }
 
 void getBrightness(uint16_t * lux)
