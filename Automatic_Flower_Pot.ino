@@ -47,6 +47,13 @@ byte timerv = 0;
 short aqtime = 0;
 //End Global Variables
 
+//
+  int distance = 0;
+  float moisture = 0;
+  uint16_t lux = 0;
+  int value = 0;
+//
+
 void setup() 
 {
   Serial.begin(9600);
@@ -70,31 +77,26 @@ void setup()
   pinMode(MOTOR_SIGNAL, OUTPUT);
 
   //interrupt
-  MsTimer2::set(3000, showLCD);
+  MsTimer2::set(1000, showLCD);
   MsTimer2::start();
 } //End setup
 
 
 void loop() 
 {
-  int distance = 0;
-  float moisture = 0;
-  uint16_t lux = 0;
-  int value = 0;
+  getFilteredDistance();
+  activateMotor();
+  getBrightness();
+  checkLevel();
 
-  getFilteredDistance(&distance);
-  activateMotor(&moisture);
-  getBrightness(&lux);
-  checkLevel(&distance);
-
-  value = setLEDlux(&lux);
+  value = setLEDlux();
   for(int i = 0; i < LED_QUANTITY; i++)
     ledbar.setPixelColor(i, value, value, value); //(i번째 led, r, g, b)  rgb순서는 모르겟
   ledbar.show();
 
   
   delay(5);
-  showLCD(distance, moisture, lux);
+  //showLCD();
 
   timerv += 1;
   
@@ -112,11 +114,11 @@ short checkTimer()
     return 0;
 }
 
-void activateMotor(float * moisture)
+void activateMotor()
 {
-  getMoisture(moisture);
+  getMoisture();
   
-  if((((int)*moisture) < 75) && (!aqtime))
+  if((((int)moisture) < 75) && (!aqtime))
   {
     digitalWrite(MOTOR_SIGNAL, HIGH);
     aqtime = timerv;
@@ -130,7 +132,7 @@ void activateMotor(float * moisture)
   }
 }
 
-void showLCD(int distance, float moisture, uint16_t lux)
+void showLCD()
 {
   /*lcd.clear();
   lcd.write("Distance : ");
@@ -145,6 +147,7 @@ void showLCD(int distance, float moisture, uint16_t lux)
   lcd.write("Moisture : ");
   lcd.print((int)moisture);
   lcd.write("%");
+  lcd.noCursor();
 
   Serial.print("lux : ");
   Serial.println(lux);
@@ -154,7 +157,7 @@ void showLCD(int distance, float moisture, uint16_t lux)
 
 }
 
-void getFilteredDistance(int * distance)
+void getFilteredDistance()
 {
     int readData[DATAQU] = {0};
     int count = 0;
@@ -195,7 +198,7 @@ void getFilteredDistance(int * distance)
 
     //Serial.print("filtered distance : ");
     //Serial.println(realvalue);
-    *distance = (double)realvalue;
+    distance = (double)realvalue;
 }
 
 int getDistance(void)
@@ -218,39 +221,39 @@ int getDistance(void)
   return distance;
 }
 
-void getMoisture(float * moisture)
+void getMoisture()
 {
   //Serial.print("analog data : ");
   //Serial.println((float)analogRead(MOISTURE_SIGNAL));
-  *moisture = (float)analogRead(MOISTURE_SIGNAL) / 820 * 100;
+  moisture = (float)analogRead(MOISTURE_SIGNAL) / 820 * 100;
 }
 
-void getBrightness(uint16_t * lux)
+void getBrightness()
 {
-  *lux = lightMeter.readLightLevel();
+  lux = lightMeter.readLightLevel();
   //Serial.print("lux ");
   //Serial.println(*lux);
 }
 
-void checkLevel(int * distance)
+void checkLevel()
 {
-  if(*distance < WATER_LEVEL)
+  if(distance < WATER_LEVEL)
     tone(PIEZO_SIGNAL, 2500);
   else
     noTone(PIEZO_SIGNAL);
 }
 
-int setLEDlux(int * lux)
+int setLEDlux()
 {
   int remainderlux = (MAXLUX - MINLUX);
 
-  getBrightness(lux);
+  getBrightness();
   
-  if(*lux <= MINLUX)
+  if(lux <= MINLUX)
     return 255;
-  else if(*lux > MAXLUX)
+  else if(lux > MAXLUX)
     return 0;
   else
-    return (int)(255 - ((double)*lux - MINLUX) / remainderlux * 255);
+    return (int)(255 - ((double)lux - MINLUX) / remainderlux * 255);
 }
 
