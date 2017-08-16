@@ -67,6 +67,7 @@ void setup()
 
   //MOTOR
   pinMode(MOTOR_SIGNAL, OUTPUT);
+  Serial.println(Hello);
 } //End setup
 
 
