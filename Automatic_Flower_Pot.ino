@@ -248,4 +248,6 @@ int setLEDlux(int * lux)
   else
     return (int)(255 - ((double)*lux - MINLUX) / remainderlux * 255);
 }
+// test
+s
 
