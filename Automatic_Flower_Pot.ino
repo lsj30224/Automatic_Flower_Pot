@@ -122,6 +122,8 @@ void activateMotor(float * moisture)
   {
     digitalWrite(MOTOR_SIGNAL, LOW);
     aqtime = 0;
+    delay(300);
+    lcd.begin(2, 16);
   }
 }
 
